@@ -100,3 +100,33 @@ AUTO_PASTE_IMAGE= True
 # 生成图片后是否自动发送(模拟回车键输入), 只有开启自动黏贴才生效
 # 此值为布尔值, True 或 False
 AUTO_SEND_IMAGE= False
+
+# 是否在每次绘制文字前自动检测底图里的“空白矩形区域”
+# 开启后会优先将文字写入检测到的最大空白块，找不到时回退到 TEXT_BOX_TOPLEFT / IMAGE_BOX_BOTTOMRIGHT
+AUTO_DETECT_TEXT_REGION= True
+
+
+# 是否在每次贴图前自动检测底图里的“空白矩形区域”
+# 开启后会优先将图片贴入检测到的最大空白块，找不到时回退到 TEXT_BOX_TOPLEFT / IMAGE_BOX_BOTTOMRIGHT
+AUTO_DETECT_IMAGE_REGION= True
+
+# 自动检测时忽略四周边缘像素范围，避免误检到边框区域
+TEXT_REGION_SEARCH_MARGIN= 0
+
+# 判定为“空白区域”的亮度阈值（RGB三个通道的最小值 >= 该值）
+# 数值越大越严格，建议范围 200~245
+TEXT_REGION_BRIGHT_THRESHOLD= 230
+
+# 自动检测得到的区域最小宽高，防止误选太小区域
+TEXT_REGION_MIN_WIDTH= 120
+TEXT_REGION_MIN_HEIGHT= 60
+
+# 自动检测区域内缩边距，避免文字贴到空白框边缘
+TEXT_REGION_PADDING= 10
+
+
+# 图片嵌入时的内边距（像素）。值越小，图片越接近占满空白区域
+IMAGE_PASTE_PADDING= 2
+
+# 当同时存在文本和图片时，文本字号上限（防止遮挡图片主体）
+MIXED_TEXT_MAX_FONT_HEIGHT= 42

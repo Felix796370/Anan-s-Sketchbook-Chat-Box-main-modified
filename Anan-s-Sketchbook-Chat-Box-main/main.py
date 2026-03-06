@@ -1,6 +1,8 @@
 import pyperclip
 import platform
 import time  # 添加time模块导入
+from io import BytesIO
+from PIL import Image
 
 # 导入操作系统适配器
 from os_adapters import os_adapter
@@ -8,7 +10,9 @@ from os_adapters import os_adapter
 # 导入配置和功能模块
 from config import DELAY, BASEIMAGE_MAPPING, FONT_FILE, BASEIMAGE_FILE, AUTO_SEND_IMAGE, AUTO_PASTE_IMAGE, BLOCK_HOTKEY, HOTKEY, \
     SEND_HOTKEY, PASTE_HOTKEY, CUT_HOTKEY, SELECT_ALL_HOTKEY, TEXT_BOX_TOPLEFT, IMAGE_BOX_BOTTOMRIGHT, \
-    BASE_OVERLAY_FILE, USE_BASE_OVERLAY
+    BASE_OVERLAY_FILE, USE_BASE_OVERLAY, AUTO_DETECT_TEXT_REGION, AUTO_DETECT_IMAGE_REGION, TEXT_REGION_SEARCH_MARGIN, \
+    TEXT_REGION_BRIGHT_THRESHOLD, TEXT_REGION_MIN_WIDTH, TEXT_REGION_MIN_HEIGHT, TEXT_REGION_PADDING, \
+    IMAGE_PASTE_PADDING, MIXED_TEXT_MAX_FONT_HEIGHT
 from text_fit_draw import draw_text_auto
 from image_fit_paste import paste_image_auto
 current_image_file = BASEIMAGE_FILE
@@ -126,7 +130,59 @@ def Start():
 
     png_bytes = None
 
-    if image is not None:
+    # 无论是否有图像，都先处理一次差分关键字
+    if text != "":
+        for keyword, img_file in BASEIMAGE_MAPPING.items():
+            if keyword in text:
+                current_image_file = img_file
+                text = text.replace(keyword, "").strip()
+                print(f"检测到关键词 '{keyword}'，使用底图: {current_image_file}")
+                break
+
+    if image is not None and text != "":
+        print("Get image + text")
+
+        try:
+            # 第一步：先贴图（不叠加 overlay，避免后续再写字时重复覆盖）
+            image_only_bytes = paste_image_auto(
+                image_source=current_image_file,
+                image_overlay=None,
+                top_left=TEXT_BOX_TOPLEFT,
+                bottom_right=IMAGE_BOX_BOTTOMRIGHT,
+                content_image=image,
+                align="center",
+                valign="middle",
+                padding=IMAGE_PASTE_PADDING,
+                allow_upscale=True,
+                keep_alpha=True,
+                auto_detect_region=AUTO_DETECT_IMAGE_REGION,
+                detect_search_margin=TEXT_REGION_SEARCH_MARGIN,
+                detect_bright_threshold=TEXT_REGION_BRIGHT_THRESHOLD,
+                detect_min_width=TEXT_REGION_MIN_WIDTH,
+                detect_min_height=TEXT_REGION_MIN_HEIGHT,
+                detect_region_padding=TEXT_REGION_PADDING,
+            )
+
+            # 第二步：在贴好图的结果上再绘制文本（保证图文同时存在）
+            mixed_base = Image.open(BytesIO(image_only_bytes)).convert("RGBA")
+            png_bytes = draw_text_auto(
+                image_source=mixed_base,
+                image_overlay=BASE_OVERLAY_FILE if USE_BASE_OVERLAY else None,
+                top_left=TEXT_BOX_TOPLEFT,
+                bottom_right=IMAGE_BOX_BOTTOMRIGHT,
+                text=text,
+                color=(0, 0, 0),
+                max_font_height=MIXED_TEXT_MAX_FONT_HEIGHT,
+                font_path=FONT_FILE,
+                align="center",
+                valign="bottom",
+                auto_detect_region=False,
+            )
+        except Exception as e:
+            print("Generate image failed:", e)
+            return
+
+    elif image is not None:
         print("Get image")
 
         try:
@@ -138,9 +194,15 @@ def Start():
                 content_image=image,
                 align="center",
                 valign="middle",
-                padding=12,
+                padding=IMAGE_PASTE_PADDING,
                 allow_upscale=True,
                 keep_alpha=True,  # 使用内容图 alpha 作为蒙版
+                auto_detect_region=AUTO_DETECT_IMAGE_REGION,
+                detect_search_margin=TEXT_REGION_SEARCH_MARGIN,
+                detect_bright_threshold=TEXT_REGION_BRIGHT_THRESHOLD,
+                detect_min_width=TEXT_REGION_MIN_WIDTH,
+                detect_min_height=TEXT_REGION_MIN_HEIGHT,
+                detect_region_padding=TEXT_REGION_PADDING,
             )
         except Exception as e:
             print("Generate image failed:", e)
@@ -149,13 +211,6 @@ def Start():
     elif text != "":
         print("Get text: " + text)
 
-        # 查找发送内容是否包含更换差分指令#差分名#，如果有则更换差分并移除关键字
-        for keyword, img_file in BASEIMAGE_MAPPING.items():
-            if keyword in text:
-                current_image_file = img_file
-                text = text.replace(keyword, "").strip()
-                print(f"检测到关键词 '{keyword}'，使用底图: {current_image_file}")
-                break
         try:
             png_bytes = draw_text_auto(
                 image_source=current_image_file,
@@ -166,6 +221,12 @@ def Start():
                 color=(0, 0, 0),
                 max_font_height=64,  # 例如限制最大字号高度为 64 像素
                 font_path=FONT_FILE,
+                auto_detect_region=AUTO_DETECT_TEXT_REGION,
+                detect_search_margin=TEXT_REGION_SEARCH_MARGIN,
+                detect_bright_threshold=TEXT_REGION_BRIGHT_THRESHOLD,
+                detect_min_width=TEXT_REGION_MIN_WIDTH,
+                detect_min_height=TEXT_REGION_MIN_HEIGHT,
+                detect_region_padding=TEXT_REGION_PADDING,
             )
         except Exception as e:
             print("Generate image failed:", e)
