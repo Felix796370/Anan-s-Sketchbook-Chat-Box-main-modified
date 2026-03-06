@@ -8,7 +8,8 @@ from os_adapters import os_adapter
 # 导入配置和功能模块
 from config import DELAY, BASEIMAGE_MAPPING, FONT_FILE, BASEIMAGE_FILE, AUTO_SEND_IMAGE, AUTO_PASTE_IMAGE, BLOCK_HOTKEY, HOTKEY, \
     SEND_HOTKEY, PASTE_HOTKEY, CUT_HOTKEY, SELECT_ALL_HOTKEY, TEXT_BOX_TOPLEFT, IMAGE_BOX_BOTTOMRIGHT, \
-    BASE_OVERLAY_FILE, USE_BASE_OVERLAY
+    BASE_OVERLAY_FILE, USE_BASE_OVERLAY, AUTO_DETECT_TEXT_REGION, AUTO_DETECT_IMAGE_REGION, TEXT_REGION_SEARCH_MARGIN, \
+    TEXT_REGION_BRIGHT_THRESHOLD, TEXT_REGION_MIN_WIDTH, TEXT_REGION_MIN_HEIGHT, TEXT_REGION_PADDING
 from text_fit_draw import draw_text_auto
 from image_fit_paste import paste_image_auto
 current_image_file = BASEIMAGE_FILE
@@ -141,6 +142,12 @@ def Start():
                 padding=12,
                 allow_upscale=True,
                 keep_alpha=True,  # 使用内容图 alpha 作为蒙版
+                auto_detect_region=AUTO_DETECT_IMAGE_REGION,
+                detect_search_margin=TEXT_REGION_SEARCH_MARGIN,
+                detect_bright_threshold=TEXT_REGION_BRIGHT_THRESHOLD,
+                detect_min_width=TEXT_REGION_MIN_WIDTH,
+                detect_min_height=TEXT_REGION_MIN_HEIGHT,
+                detect_region_padding=TEXT_REGION_PADDING,
             )
         except Exception as e:
             print("Generate image failed:", e)
@@ -166,6 +173,12 @@ def Start():
                 color=(0, 0, 0),
                 max_font_height=64,  # 例如限制最大字号高度为 64 像素
                 font_path=FONT_FILE,
+                auto_detect_region=AUTO_DETECT_TEXT_REGION,
+                detect_search_margin=TEXT_REGION_SEARCH_MARGIN,
+                detect_bright_threshold=TEXT_REGION_BRIGHT_THRESHOLD,
+                detect_min_width=TEXT_REGION_MIN_WIDTH,
+                detect_min_height=TEXT_REGION_MIN_HEIGHT,
+                detect_region_padding=TEXT_REGION_PADDING,
             )
         except Exception as e:
             print("Generate image failed:", e)
