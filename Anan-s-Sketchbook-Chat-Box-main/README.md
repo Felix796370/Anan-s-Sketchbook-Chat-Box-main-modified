@@ -28,6 +28,8 @@
 
 使用文本编辑器打开 `config.py` 即可看到方便修改的参数，可以设置热键，图片路径，字体路径等。
 
+默认已开启自动文本区域检测（`AUTO_DETECT_TEXT_REGION=True`）：每次生成文本图片前，会先在当前底图中寻找最大的亮色矩形空白区域，并将文字自动嵌入该区域。找不到合适空白区时会自动回退到 `TEXT_BOX_TOPLEFT` 和 `IMAGE_BOX_BOTTOMRIGHT` 指定的固定区域。可通过 `TEXT_REGION_BRIGHT_THRESHOLD`、`TEXT_REGION_MIN_WIDTH`、`TEXT_REGION_MIN_HEIGHT`、`TEXT_REGION_PADDING` 调整检测效果。
+
 运行 `main.py` 即可开始监听设置好的快捷键，按下回车会自动拦截按键，生成图片后自动粘贴（自动发送功能可以在 config.py 中开启）。
 
 如果发送失败等可以尝试适当增大 `config.py` 第46行的 `DELAY` 。

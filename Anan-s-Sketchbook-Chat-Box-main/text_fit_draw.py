@@ -20,6 +20,12 @@ def draw_text_auto(
     line_spacing: float = 0.15,
     bracket_color: Tuple[int, int, int] = (128, 0, 128),  # 中括号及内部内容颜色
     image_overlay: Union[str, Image.Image, None]=None,
+    auto_detect_region: bool = False,
+    detect_search_margin: int = 0,
+    detect_bright_threshold: int = 230,
+    detect_min_width: int = 120,
+    detect_min_height: int = 60,
+    detect_region_padding: int = 10,
 ) -> bytes:
     """
     在指定矩形内自适应字号绘制文本；
@@ -39,8 +45,78 @@ def draw_text_auto(
         else:
             img_overlay = Image.open(image_overlay).convert("RGBA") if os.path.isfile(image_overlay) else None
 
-    x1, y1 = top_left
-    x2, y2 = bottom_right
+    def _find_largest_blank_rect(base_img: Image.Image) -> Optional[Tuple[int, int, int, int]]:
+        """
+        在图像中查找近似“白色空白区”的最大矩形。
+        采用最大直方图矩形算法，返回 (x1, y1, x2, y2)。
+        """
+        rgb = base_img.convert("RGB")
+        w, h = rgb.size
+
+        x_start = min(max(detect_search_margin, 0), w)
+        y_start = min(max(detect_search_margin, 0), h)
+        x_end = max(x_start + 1, w - max(detect_search_margin, 0))
+        y_end = max(y_start + 1, h - max(detect_search_margin, 0))
+
+        search_w = x_end - x_start
+        search_h = y_end - y_start
+
+        pixels = rgb.load()
+        heights = [0] * search_w
+        best_area = 0
+        best_rect: Optional[Tuple[int, int, int, int]] = None
+
+        for y in range(search_h):
+            py = y + y_start
+            for x in range(search_w):
+                px = x + x_start
+                r, g, b = pixels[px, py]
+                if min(r, g, b) >= detect_bright_threshold:
+                    heights[x] += 1
+                else:
+                    heights[x] = 0
+
+            stack: List[int] = []
+            for i in range(search_w + 1):
+                cur_h = heights[i] if i < search_w else 0
+                while stack and heights[stack[-1]] > cur_h:
+                    top = stack.pop()
+                    height_val = heights[top]
+                    left_idx = stack[-1] + 1 if stack else 0
+                    width_val = i - left_idx
+
+                    if height_val < detect_min_height or width_val < detect_min_width:
+                        continue
+
+                    area = height_val * width_val
+                    if area > best_area:
+                        best_area = area
+                        rect_x1 = left_idx + x_start
+                        rect_x2 = i + x_start
+                        rect_y2 = py + 1
+                        rect_y1 = rect_y2 - height_val
+                        best_rect = (rect_x1, rect_y1, rect_x2, rect_y2)
+                stack.append(i)
+
+        return best_rect
+
+    if auto_detect_region:
+        detected_rect = _find_largest_blank_rect(img)
+        if detected_rect is not None:
+            x1, y1, x2, y2 = detected_rect
+            if detect_region_padding > 0:
+                x1 = min(max(0, x1 + detect_region_padding), img.width)
+                y1 = min(max(0, y1 + detect_region_padding), img.height)
+                x2 = min(max(0, x2 - detect_region_padding), img.width)
+                y2 = min(max(0, y2 - detect_region_padding), img.height)
+        else:
+            x1, y1 = top_left
+            x2, y2 = bottom_right
+            print("Warning: 未检测到可用空白区域，回退到配置坐标。")
+    else:
+        x1, y1 = top_left
+        x2, y2 = bottom_right
+
     if not (x2 > x1 and y2 > y1):
         raise ValueError("无效的文字区域。")
     region_w, region_h = x2 - x1, y2 - y1
