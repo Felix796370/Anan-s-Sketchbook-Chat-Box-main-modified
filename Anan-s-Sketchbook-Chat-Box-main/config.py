@@ -105,6 +105,11 @@ AUTO_SEND_IMAGE= False
 # 开启后会优先将文字写入检测到的最大空白块，找不到时回退到 TEXT_BOX_TOPLEFT / IMAGE_BOX_BOTTOMRIGHT
 AUTO_DETECT_TEXT_REGION= True
 
+
+# 是否在每次贴图前自动检测底图里的“空白矩形区域”
+# 开启后会优先将图片贴入检测到的最大空白块，找不到时回退到 TEXT_BOX_TOPLEFT / IMAGE_BOX_BOTTOMRIGHT
+AUTO_DETECT_IMAGE_REGION= True
+
 # 自动检测时忽略四周边缘像素范围，避免误检到边框区域
 TEXT_REGION_SEARCH_MARGIN= 0
 
